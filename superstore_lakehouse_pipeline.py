@@ -104,6 +104,41 @@ for raw_table in RAW_TABLES:
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_order_items LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_products LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_customers LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_locations LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_categories LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_regions LIMIT 5;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM bronze_ship_modes;
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Task 2: Silver Layer
 # MAGIC
@@ -148,11 +183,11 @@ deduplicated = (cleaned
 
 def split_valid_and_rejected(df):
     validation_rule = (
-        (F.col(SALES).isNotNull()) &
-        (F.col(QUANTITY).isNotNull()) &
-        (F.col(SALES) >= 0) &
-        (F.col(QUANTITY) > 0) &
-        (F.col(SHIP_DATE) >= F.col(ORDER_DATE))
+            (F.col(SALES).isNotNull()) &
+            (F.col(QUANTITY).isNotNull()) &
+            (F.col(SALES) >= 0) &
+            (F.col(QUANTITY) > 0) &
+            (F.col(SHIP_DATE) >= F.col(ORDER_DATE))
     )
 
     valid = df.filter(validation_rule)
@@ -171,7 +206,7 @@ silver_orders, silver_rejected = split_valid_and_rejected(deduplicated)
 (silver_orders.write.format(DELTA).mode(OVERWRITE)
  .option(OVERWRITE_SCHEMA, True).saveAsTable(SILVER_ORDERS))
 (silver_rejected.write.format(DELTA).mode(OVERWRITE)
-    .option(OVERWRITE_SCHEMA, True).saveAsTable(SILVER_REJECTED_ORDERS))
+ .option(OVERWRITE_SCHEMA, True).saveAsTable(SILVER_REJECTED_ORDERS))
 
 print(f"silver_orders has {spark.table(SILVER_ORDERS).count()} rows")
 print(f"silver_rejected_orders has {spark.table(SILVER_REJECTED_ORDERS).count()} rows")
@@ -210,7 +245,7 @@ def process_day(day_file: str):
 
     spark.sql("""
             MERGE INTO silver_orders AS t
-            USING incoming_good AS s
+            USING incoming_good_data AS s
             ON t.row_id = s.row_id
             WHEN NOT MATCHED THEN INSERT *
         """)
@@ -254,6 +289,11 @@ for file in ["day_1.csv", "day_2.csv", "day_3.csv"]:
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC SELECT * FROM gold_sales_daily ORDER BY revenue DESC;
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE gold_sales_region AS
 # MAGIC SELECT region, ROUND(SUM(sales), 2) AS revenue
 # MAGIC FROM silver_orders
@@ -262,10 +302,20 @@ for file in ["day_1.csv", "day_2.csv", "day_3.csv"]:
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC SELECT * FROM gold_sales_region ORDER BY revenue DESC;
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC CREATE OR REPLACE TABLE gold_sales_category AS
 # MAGIC SELECT category, ROUND(SUM(sales), 2) AS revenue
 # MAGIC FROM silver_orders
 # MAGIC GROUP BY category;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM gold_sales_category ORDER BY revenue DESC;
 
 # COMMAND ----------
 
@@ -280,12 +330,7 @@ for file in ["day_1.csv", "day_2.csv", "day_3.csv"]:
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC SELECT * FROM gold_sales_region ORDER BY revenue DESC;
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC SELECT * FROM gold_sales_category ORDER BY revenue DESC;
+# MAGIC SELECT * FROM gold_customer_metrics ORDER BY revenue DESC;
 
 # COMMAND ----------
 
