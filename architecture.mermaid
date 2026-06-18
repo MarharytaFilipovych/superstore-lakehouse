@@ -1,0 +1,62 @@
+flowchart TD
+    subgraph RAW["RAW FILES (8 CSVs)"]
+        direction LR
+        F1["order_items.csv"]
+        F2["orders.csv"]
+        F3["customers.csv"]
+        F4["products.csv"]
+        F5["locations.csv"]
+        F6["categories.csv"]
+        F7["regions.csv"]
+        F8["ship_modes.csv"]
+    end
+
+    BRONZE["BRONZE\nbronze_* (8) Delta tables\n1:1 copy of each CSV\n+ ingestion_timestamp\n+ source_file_name"]
+
+    XFORM["join order_items x customers x products x locations\nparse dates, standardize text\ndedupe (ROW_NUMBER over row_id)\nvalidate business rules"]
+
+    subgraph SILVER["SILVER"]
+        SO["silver_orders ─ valid rows"]
+        SR["silver_rejected_orders ─ invalid rows + rejection_reason"]
+    end
+
+    INC["day_1.csv / day_2.csv / day_3.csv\nMERGE INTO ... ON row_id\nWHEN NOT MATCHED THEN INSERT\n(Task 3: Incremental Loading)"]
+
+    subgraph GOLD["GOLD"]
+        direction LR
+        G1["gold_sales_daily"]
+        G2["gold_sales_region"]
+        G3["gold_sales_category"]
+        G4["gold_customer_metrics"]
+    end
+
+    ANALYTICS["ANALYTICS\nTop 5 products; Top region\nMonthly trend (LAG); Running total\n(SUM OVER); Top product per region\n(ROW_NUMBER)"]
+
+    RAW     --> BRONZE
+    BRONZE  --> XFORM
+    XFORM   --> SILVER
+    INC     --> SO
+    SILVER  --> GOLD
+    GOLD    --> ANALYTICS
+
+    style RAW       fill:#4a5568,color:#fff,stroke:#718096
+    style F1        fill:#374151,color:#fff,stroke:#718096
+    style F2        fill:#374151,color:#fff,stroke:#718096
+    style F3        fill:#374151,color:#fff,stroke:#718096
+    style F4        fill:#374151,color:#fff,stroke:#718096
+    style F5        fill:#374151,color:#fff,stroke:#718096
+    style F6        fill:#374151,color:#fff,stroke:#718096
+    style F7        fill:#374151,color:#fff,stroke:#718096
+    style F8        fill:#374151,color:#fff,stroke:#718096
+    style BRONZE    fill:#9c4221,color:#fff,stroke:#c05621
+    style XFORM     fill:#276749,color:#fff,stroke:#48bb78
+    style SILVER    fill:#2c5282,color:#fff,stroke:#4299e1
+    style SO        fill:#2b4c7e,color:#fff,stroke:#4299e1
+    style SR        fill:#742a2a,color:#fff,stroke:#fc8181
+    style INC       fill:#374151,color:#fff,stroke:#6b7280
+    style GOLD      fill:#744210,color:#fff,stroke:#d69e2e
+    style G1        fill:#7b4f12,color:#fff,stroke:#d69e2e
+    style G2        fill:#7b4f12,color:#fff,stroke:#d69e2e
+    style G3        fill:#7b4f12,color:#fff,stroke:#d69e2e
+    style G4        fill:#7b4f12,color:#fff,stroke:#d69e2e
+    style ANALYTICS fill:#1a365d,color:#fff,stroke:#4299e1
